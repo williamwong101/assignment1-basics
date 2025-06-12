@@ -2,6 +2,8 @@
 import numpy as np
 import sys
 print(f"Python version: {sys.version}, executable: {sys.executable}, path: {sys.path}")
+from tests.common import gpt2_bytes_to_unicode
+
 def print_string_encoding(string, encoding):
     """
     Prints the byte representation of a string in the specified encoding.
@@ -19,14 +21,17 @@ def decode_utf8_bytes_to_str_wrong(bytestring: bytes):
 
 if __name__ == "__main__":
     # Problem (unicode2): Unicode Encodings
-    string = "Hello, world! 这是一个 test string."
-    print("Original String:", string)
-    print_string_encoding(string, 'utf-8')
-    print_string_encoding(string, 'utf-16')
-    print_string_encoding(string, 'utf-32')
+    # string = "Hello, world! 这是一个 test string."
+    # print("Original String:", string)
+    # print_string_encoding(string, 'utf-8')
+    # print_string_encoding(string, 'utf-16')
+    # print_string_encoding(string, 'utf-32')
     
     # print("\n=== Decoding UTF-8 Bytes to String (Wrong Method) ===")
     # test_string = chr(666)
     # print(f"Original string: {test_string}, encoded: {test_string.encode('utf-8')}")
     # print("Decoded String: ", decode_utf8_bytes_to_str_wrong(test_string.encode('utf-8')))  # This will not work correctly
     
+    gpt2_dict = gpt2_bytes_to_unicode()
+    print("\n=== GPT-2 Byte to Unicode Mapping ===")
+    print(gpt2_dict)
