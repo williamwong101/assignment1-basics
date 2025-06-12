@@ -1,4 +1,7 @@
 
+import numpy as np
+import sys
+print(f"Python version: {sys.version}, executable: {sys.executable}, path: {sys.path}")
 def print_string_encoding(string, encoding):
     """
     Prints the byte representation of a string in the specified encoding.

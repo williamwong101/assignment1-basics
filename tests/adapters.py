@@ -8,6 +8,7 @@ from jaxtyping import Float, Int
 import numpy.typing as npt
 import torch
 from torch import Tensor
+from ..bpe.train import BPETokenizerTrainer
 
 
 
@@ -588,4 +589,10 @@ def run_train_bpe(
                 representing that <token1> was merged with <token2>.
                 Merges are ordered by order of creation.
     """
-    raise NotImplementedError
+    trainer = BPETokenizerTrainer(
+        input_path=input_path,
+        vocab_size=vocab_size,
+        special_tokens=special_tokens,
+    )
+    params = trainer.train()
+    return params.vocab, params.merges
