@@ -3,9 +3,15 @@ import os
 from bpe.common import BPETokenizerParams
 from cs336_basics.pretokenization_example import find_chunk_boundaries
 from multiprocessing import Pool
+import regex as re
+import logging
+import itertools
+logger = logging.getLogger(__name__)
 
 
 class BPETokenizerTrainer:
+    PRE_TOKENIZE_PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
+    
     def __init__(
         self,
         input_path: str | os.PathLike,
@@ -37,17 +43,38 @@ class BPETokenizerTrainer:
             self._vocab[len(self._vocab)] = token_bytes
         for i in range(256):
             self._vocab[len(self._vocab)] = bytes([i])
+        logger.debug(f"Init vocab: {self._vocab}")
 
     @classmethod
     def pre_tokenize_chunk(
         cls, input_path: str, start: int, end: int, special_tokens: list[str]
     ) -> dict[str, int]:
+        """
+        Pre-tokenizes a chunk of text from the input file.
+        :param input_path: The path to the input text file.
+        :param start: The starting byte position of the chunk.
+        :param end: The ending byte position of the chunk.
+        :param special_tokens: A list of special tokens to be used for pre-tokenization.
+        :return: A dictionary mapping pre-tokenized tokens to their frequencies in the chunk.
+        """
+        docs: list[str] = []
         with open(input_path, "rb") as f:
             f.seek(start)
             chunk_text = f.read(end - start).decode("utf-8", errors="ignore")
-        return {}
+            special_tokens_regex = "|".join(
+                [re.escape(token) for token in special_tokens]
+            )
+            docs = re.split(special_tokens_regex, chunk_text)
+        pre_tokenize_frequency = {}
+        for doc in docs:
+            tokens = re.findall(cls.PRE_TOKENIZE_PAT, doc)
+            for token in tokens:
+                if token not in pre_tokenize_frequency:
+                    pre_tokenize_frequency[token] = 0
+                pre_tokenize_frequency[token] += 1
+        return pre_tokenize_frequency
 
-    def pre_tokenize(self) -> None:
+    def _pre_tokenize(self) -> None:
         """
         Pre-tokenizes the input text file to prepare for BPE training.
         This method should read the input file and perform any necessary pre-tokenization steps.
@@ -59,6 +86,7 @@ class BPETokenizerTrainer:
 
             chunk_indices = list(zip(boundaries[:-1], boundaries[1:]))
             num_processes = min(self._pre_tokenize_processes, len(chunk_indices))
+            logger.debug(f"Num chunks: {len(chunk_indices)}, num processes: {num_processes}")
 
             with Pool(num_processes) as pool:
                 chunk_pre_tokenize_results = pool.starmap(
@@ -80,6 +108,9 @@ class BPETokenizerTrainer:
                         self._pre_tokenize_frequency[token] += count
                     else:
                         self._pre_tokenize_frequency[token] = count
+        logger.debug(
+            f"Pre-tokenization frequency length: {len(self._pre_tokenize_frequency)}, pre-tokenization frequency: {dict(itertools.islice(self._pre_tokenize_frequency.items(), 10))}"
+        )
 
     def train(self) -> BPETokenizerParams:
         """
@@ -89,9 +120,11 @@ class BPETokenizerTrainer:
 
         # Initialize the vocabulary with byte values and special tokens
         self._init_vocab()
+        
+        # Pre-tokenize the input text file
+        self._pre_tokenize()
 
-        # Placeholder for actual BPE training logic
-        # This should read the input file, build the vocabulary, and generate merges
+        
 
         # For now, we return an empty set of merges
         return BPETokenizerParams(vocab=self._vocab, merges=self._merges)
